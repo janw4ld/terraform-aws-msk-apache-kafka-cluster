@@ -7,12 +7,6 @@ variable "kafka_version" {
   nullable    = false
 }
 
-variable "broker_instance_type" {
-  type        = string
-  description = "The instance type to use for the Kafka brokers"
-  nullable    = false
-}
-
 variable "broker_per_zone" {
   type        = number
   default     = 1
@@ -24,11 +18,41 @@ variable "broker_per_zone" {
   nullable = false
 }
 
-variable "broker_volume_size" {
-  type        = number
-  default     = 1000
-  description = "The size in GiB of the EBS volume for the data drive on each broker node"
-  nullable    = false
+variable "broker" {
+  type = object({
+    instance_type                  = string
+    volume_size                    = number
+    provisioned_throughput_enabled = optional(bool, false)
+    provisioned_throughput         = optional(number, null)
+  })
+
+  description = "MSK broker nodes configuration."
+
+  default = {
+    instance_type          = "kafka.m7g.large"
+    volume_size            = 1000
+  }
+
+  nullable = false
+
+  validation {
+    # either provisioned_throughput is disabled, or instance_type not in unsupported list
+    condition = !var.broker.provisioned_throughput_enabled || !contains(
+      [
+        "kafka.t3.small",
+        "kafka.m5.large",
+        "kafka.m5.xlarge",
+        "kafka.m5.2xlarge",
+        "kafka.m7g.large",
+        "kafka.m7g.xlarge"
+      ],
+      var.broker.instance_type
+    )
+    error_message = <<-EOT
+    provisioned_throughput is not supported for ${var.broker.instance_type} brokers.
+    see https://docs.aws.amazon.com/msk/latest/developerguide/msk-provision-throughput.html for details.
+    EOT
+  }
 }
 
 variable "subnet_ids" {

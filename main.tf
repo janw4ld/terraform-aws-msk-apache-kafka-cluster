@@ -4,7 +4,7 @@ locals {
   broker_endpoints = local.enabled ? flatten(data.aws_msk_broker_nodes.default[0].node_info_list[*].endpoints) : []
 
   # If var.storage_autoscaling_max_capacity is not set, don't autoscale past current size
-  broker_volume_size_max = coalesce(var.storage_autoscaling_max_capacity, var.broker_volume_size)
+  broker_volume_size_max = coalesce(var.storage_autoscaling_max_capacity, var.broker.volume_size)
 
   # var.client_broker types
   plaintext     = "PLAINTEXT"
@@ -138,13 +138,18 @@ resource "aws_msk_cluster" "default" {
   enhanced_monitoring    = var.enhanced_monitoring
 
   broker_node_group_info {
-    instance_type   = var.broker_instance_type
+    instance_type   = var.broker.instance_type
     client_subnets  = var.subnet_ids
     security_groups = var.create_security_group ? concat(var.associated_security_group_ids, [module.security_group.id]) : var.associated_security_group_ids
 
     storage_info {
       ebs_storage_info {
-        volume_size = var.broker_volume_size
+        volume_size = var.broker.volume_size
+
+        provisioned_throughput {
+          enabled           = var.broker.provisioned_throughput_enabled
+          volume_throughput = var.broker.provisioned_throughput
+        }
       }
     }
 
