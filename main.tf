@@ -220,12 +220,6 @@ resource "aws_msk_cluster" "default" {
     }
   }
 
-  lifecycle {
-    ignore_changes = [
-      broker_node_group_info[0].storage_info[0].ebs_storage_info[0].provisioned_throughput
-    ]
-  }
-
   tags = module.this.tags
 }
 
